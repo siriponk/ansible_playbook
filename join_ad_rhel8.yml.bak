@@ -1,0 +1,75 @@
+---
+- hosts: rhel8dev
+  remote_user: root
+  become: true
+  vars:
+    ad_join_admin: a1-the12350884
+#    ad_join_admin: a-th12362427
+    addomain: devglobal.lotuss.org 
+#    sssdfile: /etc/sssd/sssd.conf
+
+  vars_prompt:
+    - name: "bind_password"
+      prompt: "Password for a1-the12350884"
+#      prompt: "Password for a-th12362427"
+      private: yes
+
+  tasks:
+
+    - name: Distribution
+      debug: msg="{{ ansible_distribution }}"
+
+    - name: Distribution version
+      debug: msg="{{ ansible_distribution_version}}"
+
+    - name: Distribution major version
+      debug: msg="{{ ansible_distribution_major_version }}"
+
+    - name: Install necessary rpms for sssd config
+      yum: 
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      loop:
+        - sssd
+        - realmd
+        - oddjob
+        - oddjob-mkhomedir
+        - adcli
+        - samba-common
+        - samba-common-tools
+        - krb5-workstation
+        - openldap-clients
+
+    - name: Check if machine is bound
+      shell: /bin/bash -c "realm list | grep sssd"
+      register: ad_status
+      changed_when: false
+      ignore_errors: true
+
+#    - name: leaving Realm
+#      command: /bin/bash -c "realm leave"
+#      when: ad_status.rc != 0
+#      ignore_errors: true
+
+    - name: Join system to AD and put the computer object in the Linux 
+      command: /bin/bash -c "echo {{ bind_password }} | realm join --user={{ ad_join_admin }} {{ addomain }} && sleep 10"
+      when: ad_status.rc != 0
+
+    - name: copy file sssd file
+      remote_user: root
+      ansible.builtin.template:
+        src: /root/ansible/sssd.conf_rhel8.j2
+        dest: /etc/sssd/sssd.conf
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+      when: ad_status.rc != 0 
+
+    - name: Starting sssd
+      service:
+        name: sssd
+        state: restarted
+        enabled: yes
+      when: ad_status.rc != 0

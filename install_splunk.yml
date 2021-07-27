@@ -1,0 +1,29 @@
+---
+- hosts: new-server
+#- hosts: splunk-server
+  remote_user: root 
+  become: yes
+  
+  tasks:   
+    - name: Create a directory
+      ansible.builtin.file:
+        path: /root/splunk
+        state: directory
+        recurse: yes
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Download splunk install
+      get_url:
+        url: http://119.46.54.156/splunk/lotus/install_th.sh
+        dest: /root/splunk
+        mode: '0755'
+
+    - name: Run a script splunk install
+      ansible.builtin.shell:
+        chdir: /root/splunk
+        cmd: ./install_th.sh
+ 
+#   - name: install spunk service
+#     shell: curl http://119.46.54.156/splunk/lotus/install_th.sh|sh

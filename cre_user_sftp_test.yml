@@ -1,0 +1,90 @@
+---
+- hosts: SFTP-server
+  remote_user: root
+  become: true
+  vars_prompt:
+   - name: "new_user" ## Create user 
+     prompt: "Enter User Name (put only username. it will create at /home/xxxxxxxx)"
+     private: no
+
+   - name: "chroot_path" ## Create Directory (ex. /xxxx/xxx)
+     prompt: "Enter Chroot path to created in /etd/sshd/sshd.conf/ "
+     private: no
+
+   - name: "home_path" ## Create Directory (ex. /xxxx)
+     prompt: "Enter Home path to created (put only dir name after Chroot path) "
+     private: no
+
+
+  tasks:
+
+  - ansible.builtin.group:
+      name: sftp
+      state: present
+      gid: 10000
+
+  - ansible.builtin.user:
+      name: "{{ new_user }}" 
+      comment: 'SFTP service account'
+      groups: sftp
+      shell: /bin/bash
+      append: yes
+
+  - file:
+      path: "{{ chroot_path }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+    ignore_errors: true
+
+  - file:
+      path: "{{ chroot_path }}{{ home_path }}"
+      state: directory
+      owner: "{{ new_user }}"
+      group: sftp
+      mode: '0755'
+    ignore_errors: true
+
+  - command: grep "^AllowUsers " /etc/ssh/sshd_config
+#  - command: grep "^AllowUsers " /root/ff.txt
+    register: old_user_list
+
+#  - debug: msg="{{ old_user_list }}"
+
+  - command: grep -P '^[ \t]*AllowUsers[ \t]+([-\w ]+[ \t]+)*{{ new_user | regex_escape() }}([ \t]+.+)*$' /etc/ssh/sshd_config
+    register: allow_users_exists
+    changed_when: no
+    ignore_errors: yes
+
+#  - debug: msg="{{ allow_users_exists }}"
+
+  - lineinfile:
+#      path: '/root/ff.txt'
+      path: '/etc/ssh/sshd_config'
+      regexp: "^AllowUsers "
+      line: "{{ old_user_list.stdout }} {{new_user}}"
+      backup: yes
+    when: old_user_list.rc == 0 and allow_users_exists.rc !=0
+
+  - blockinfile:
+#      path: '/root/ff.txt'
+      path: '/etc/ssh/sshd_config'
+      marker: ""
+      block: | 
+        Match User {{ new_user }}
+        ForceCommand internal-sftp
+        PasswordAuthentication yes
+        ChrootDirectory {{ chroot_path }}
+        AllowTCPForwarding no
+        X11Forwarding no
+    when: old_user_list.rc == 0 and allow_users_exists.rc !=0
+
+  - service:
+      name: sshd
+      state: "{{ item }}"
+    with_items:
+      - stopped
+      - started
+    
+

@@ -1,0 +1,24 @@
+---
+- hosts: test-servers
+  remote_user: root
+  become: true
+  vars:
+   common_support_packages:
+#    - vim
+#    - gcc
+#    - mysql-devel
+    - traceroute
+
+  tasks:
+#  - name: yum update
+#    yum: name=* state=latest update_cache=True
+
+  - name: install rpm files
+    yum:
+     name: "{{ item }}"
+     state: latest
+     update_cache: yes
+    with_items:
+     - "{{ common_support_packages }}"
+    tags: common-debug
+

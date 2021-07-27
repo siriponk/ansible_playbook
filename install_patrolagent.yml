@@ -1,0 +1,120 @@
+---
+- hosts: bmc-test
+  remote_user: root
+  become: true
+  vars: 
+    patrol_agent_user: "svc-bmc-patrol-agent"
+    patrol_agent_group: svc-bmc-patrol-agent  
+
+  tasks:
+
+    - name: "Add `{{ patrol_agent_group }}` group"
+      become: yes
+      ansible.builtin.group:
+        name: "{{ patrol_agent_group }}"
+        gid: 1080
+        state: present
+
+    - name: "Add `{{ patrol_agent_user }}` user"
+      become: yes
+      ansible.builtin.user:
+        name: "{{ patrol_agent_user }}"
+        comment: BMC Patrol Agent Service Account
+        shell: /usr/bin/false
+        uid: 1080
+        group: "{{ patrol_agent_group }}"
+        state: present
+
+    - name: Create a directory
+      ansible.builtin.file:
+        path: /opt/bmc/patrol 
+        state: directory
+        recurse: yes
+        mode: '0755'
+        owner: "{{ patrol_agent_user }}"
+        group: "{{ patrol_agent_group }}"
+
+    - name: Get the PID of Patrol Agent process
+      ansible.builtin.shell:
+        cmd: "ps auwx |grep PatrolAgent | grep -v grep"
+      register: patrol_agent_process_list
+      changed_when: patrol_agent_process_list.rc != 0
+      ignore_errors: yes
+
+    - name: Set the Patrol Agent installing flag
+      set_fact:
+        is_installed_patrol_agent: patrol_agent_process_list.rc == 0
+
+    - name: copy PatrolAgent file 
+      ansible.builtin.copy:
+        src: /root/ansible/PatrolAgent_Lotussdev_Linux.zip
+        dest: /opt/bmc
+        owner: "{{ patrol_agent_user }}"
+        group: "{{ patrol_agent_group }}"
+        mode: 0644
+      when: is_installed_patrol_agent
+    
+    - name: Unpack PatrolAgent to the target server
+      remote_user: "{{  patrol_agent_user}}"
+      unarchive:
+        src=/opt/bmc/PatrolAgent_Lotussdev_Linux.zip
+        dest=/opt/bmc/
+        remote_src=yes
+        mode=0775
+        group="{{ patrol_agent_group }}"
+        owner="{{ patrol_agent_user }}"
+      when: is_installed_patrol_agent
+
+    - name: Update service account in the BMC Patrol Agent installation control file
+      ansible.builtin.template:
+        src: templates/install.ctl.j2
+        dest: /opt/bmc/bmc_products/install.ctl
+        owner: "{{ patrol_agent_user }}"
+        group: "{{ patrol_agent_group }}"
+        mode: '0644'
+      when: is_installed_patrol_agent
+
+    - name: Install BMC Patrol Agent - Phase 1
+      become: yes
+      become_user: "{{ patrol_agent_user }}"
+      ansible.builtin.shell:
+        chdir: /opt/bmc/bmc_products
+        cmd: >-
+          umask 002
+          && ./RunSilentInstall.sh
+        creates: /opt/bmc/patrol/Patrol3/create_rc_script.sh
+      register: patrol_agent_installation_results
+      failed_when:
+        - patrol_agent_installation_results.rc != 0
+        - >-
+          'PATROL installer: Installation completed successfully.' not in patrol_agent_installation_results.stdout
+        - is_installed_patrol_agent
+
+    - name: Install BMS Patrol Agent - Phase 2
+      ansible.builtin.find:
+        file_type: file
+        paths: /opt/bmc/patrol/log
+        patterns: '*_install.log_rootscripts'
+        recurse: yes
+      register: root_scripts
+      when: is_installed_patrol_agent
+
+
+    - name: Get the root script file
+      set_fact:
+        root_script: "{{ root_scripts.files[0].path }}"
+      failed_when:
+        - not root_scripts is defined
+        - root_scripts.match = 0
+        - not root_scripts.files[0].path is defined
+      when: is_installed_patrol_agent
+
+    - name: Start Patrol Agent
+      become: yes
+      become_user: "{{ patrol_agent_user }}"
+      ansible.builtin.command:
+        cmd: "/bin/bash ./S50PatrolAgent.sh start"
+        chdir: /opt/bmc/patrol/Patrol3/scripts.d
+      register: patrol_agent_start_results
+      failed_when: patrol_agent_start_results.rc != 0
+      when: is_installed_patrol_agent

@@ -1,0 +1,42 @@
+---
+- hosts: servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Execute the Uptime command over Command module
+      register: uptimeoutput
+      command: "uptime"
+      ignore_errors: true
+    - debug:
+          var: uptimeoutput.stdout_lines
+   
+#    - name: Execute /boot usage on Hosts
+#      command: 'df -ah /var/log | tail -1'
+#      register: df
+#    - debug:
+#          var: df.stdout_lines
+    - name: du >>>
+      command: 'du -sk /var/log'
+      register: folder_size_raw
+      ignore_errors: true
+    - set_fact:
+        folder_size: "{{ folder_size_raw.stdout.split()[0] }}"
+
+    - debug:
+        msg: "{{ folder_size }}"
+          
+#    - name: ensure wget and ruby are installed
+#      yum:
+#        name: 
+#            - wget
+#        state: present
+#        update_cache: true
+#      become: true
+      
+#    - name: install all updates
+#      yum:
+#        name: '*'
+#        update_cache: yes
+#        state: latest
+#      register: result

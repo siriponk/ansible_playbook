@@ -1,0 +1,50 @@
+---
+- hosts: nmon-server
+  remote_user: root 
+  become: yes
+  vars:
+    yum_packages:
+     - nmon
+  
+  tasks:  
+    - name: install rpm files
+      yum:
+        name: "{{ item }}"
+        state: latest
+        update_cache: yes
+      with_items:
+        - "{{ yum_packages }}"
+
+    - name: Create a directory
+      ansible.builtin.file:
+        path: /opt/nmon
+        state: directory
+        recurse: yes
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Copy Nmon file
+      ansible.builtin.copy:
+        src: /root/ansible/keep_nmon.sh
+        dest: /opt/nmon
+        owner: "root"
+        group: "root"
+        mode: '0755'
+
+    - name: Run a script nmon 
+      ansible.builtin.shell:
+        chdir: /opt/nmon
+        cmd: ./keep_nmon.sh
+
+    - name: "Cronjob Entry"
+      become_user: "root"
+      cron:
+        name: "### Nmon "
+        minute: "0"
+        hour: "0"
+        day: "*"
+        month: "*"
+        weekday: "*"
+        job: /opt/nmon/keep_nmon.sh 
+ 

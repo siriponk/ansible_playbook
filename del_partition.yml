@@ -1,0 +1,52 @@
+---
+- hosts: test-servers
+  remote_user: root
+  become: true
+
+  vars_prompt:
+
+   - name: "pvs_name" ## Disk after partition
+     prompt: "PV name after creating with partition"
+     private: no
+
+   - name: "vg_name" ## Name of Volume group about to create.
+     prompt: "Enter VG name to be created"
+     private: no
+
+   - name: "lv_name" ## Name of Logical Volume about to create.
+     prompt: "Enter LV name to be created"
+     private: no
+
+   - name: "mount_point" ## In what name mount point should be created.
+     prompt: "Where need to unmount?"
+     private: no
+   
+  tasks:
+
+   - name: Unmount the "{{ mount_point }}" in filesystem. ## This is to delete the FSTAB entry and mount the Filesystem.
+     mount:
+       path: "{{ mount_point }}" ## Mount point where to mount the FS.
+       state: "{{ item }}"
+     with_items:
+       - unmounted
+       - absent
+     ignore_errors: true
+
+   - name: Remove the "{{ lv_name }}" Logical Volume.
+     lvol:
+       vg: "{{ vg_name }}"
+       lv: "{{ lv_name }}" ## Name of Logical volume need to be created
+       force: yes
+       state: absent
+     ignore_errors: true
+
+
+   - name: Remove the "{{ vg_name }}" Volume group.
+     lvg:
+       vg: "{{ vg_name }}" ## Name of Volume group.
+       pvs: "{{ pvs_name }}" ## Physical Volume created using partition eg (/dev/sdb1 or /dev/sdc1)
+       force: yes
+       state: absent
+     ignore_errors: true
+
+

@@ -1,0 +1,15 @@
+---
+- hosts: bmc-server-r8
+  remote_user: root
+  become: true
+  vars:
+    new_domain: "%DL-TH-T1-Server Administrator@global.lotuss.org ALL=(ALL)   ALL"
+
+  tasks:
+    - name: add AD domain to /etc/suoder file
+      remote_user: root
+      lineinfile:
+        path: /etc/sudoers.d/domain_admins
+        line: "{{ new_domain }}"
+        backup: yes
+  

@@ -1,0 +1,68 @@
+---
+- hosts: Promkiet
+  become: true
+  vars:
+    - proxy: ProxyServer=http://10.3.16.39:8080
+
+  tasks:      
+    - name: Copy cb-sensor files
+      copy:
+        dest: "{{ item.dest }}"
+        src: "{{ item.src }}"
+        mode: "{{ item.mode }}"
+      with_items:
+        #- { src: '/root/ansible/software/cb-psc-sensor-rhel-2.10.2.403960.tgz',dest: '/root/ansible/software/cb-psc-sensor-rhel-2.10.2.403960.tgz', mode: '0644'}
+        #- { src: '/tmp/install.sh',dest: '/tmp/', mode: '0755'}
+        - { src: '/root/cb-psc-sensor-rhel-2.10.2.403960.tgz',dest: '/opt', mode: '0644'}
+        - { src: '/etc/yum.repos.d/cblauncher.repo',dest: '/etc/yum.repos.d/', mode: '0644'}
+        - { src: '/root/VMWARE-CBLAUNCHER-PACKAGING-GPG-RSA-KEY.pub',dest: '/opt/', mode: '0644'}
+
+    - name: Import a key from a file
+      ansible.builtin.rpm_key:
+        state: present
+        key: /opt/VMWARE-CBLAUNCHER-PACKAGING-GPG-RSA-KEY.pub
+
+    - name: install cblauncher
+      yum:
+        name: "{{ item }}" 
+        state: present
+        update_cache: true
+      loop: 
+        - cblauncher
+      become: true
+
+    - name: start cblauncher service
+      service:
+         name: cblauncher
+         state: started
+         daemon_reload: yes
+
+    - name: Unarchive a file that is already on the remote machine
+      ansible.builtin.unarchive:
+         src: /opt/cb-psc-sensor-rhel-2.10.2.403960.tgz
+         dest: /opt/
+         remote_src: yes
+     
+    - name: check first cb-sencor 
+      yum:
+        list: cb-psc-sensor
+      register: is_installed
+
+    - name: install cb-psc-sensor if not exist
+      command: sh /opt/install.sh 546OA1IDWWGBKIC5WPC!
+      #when: (is_installed.results|length == 1) or (is_installed.results[1].yumstate != 'installed')
+      when: (is_installed.results|length == 0)
+
+    - name: Add a line to a file if the file does not exist, without passing regexp
+      ansible.builtin.lineinfile:
+        path: /var/opt/carbonblack/psc/cfg.ini
+        #line: ProxyServer=http://10.2.0.31:8080
+        line: ProxyServer=http://10.3.16.39:8080
+        create: yes
+ 
+    - name: start cbagentd service
+      service:
+         name: cbagentd
+         state: started
+         daemon_reload: yes
+

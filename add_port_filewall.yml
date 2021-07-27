@@ -1,0 +1,16 @@
+---
+- hosts: bmc-server-r8 
+  remote_user: root
+  become: true
+  gather_facts: no
+  vars_prompt:
+    - name: ports
+      prompt: "Enter port(s) number"
+      private: no
+  tasks:
+    - name: add port
+      shell: /bin/firewall-cmd --permanent --add-port={{ item }}/tcp
+      ignore_errors: true
+      with_items: "{{ ports.split(',') }}"
+    - name: reload firewalld
+      command: firewall-cmd --reload

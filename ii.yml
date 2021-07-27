@@ -1,0 +1,26 @@
+---
+- hosts: rhel7dev
+  remote_user: root
+  become: true
+  vars:
+    old_domain: devdevglobal.lotuss.org
+    new_domain: devglobal.lotuss.org
+
+  tasks:
+#    - name: change sudoer file
+#      remote_user: root
+#      replace:
+#        path: /etc/hosts
+#        regexp: '{{ old_domain }}'
+#        replace: "{{ new_domain }}"
+#        backup: yes
+
+    - name: check config file
+      command: /bin/bash -c "cat /etc/resolv.conf" 
+#      command: /bin/bash -c "cat /etc/hosts | grep '{{ ansible_host  }}'" 
+      register: ad_status
+
+    - debug: msg="{{ ad_status.stdout_lines }}"
+
+
+

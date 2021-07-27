@@ -1,0 +1,34 @@
+---
+- hosts: new-server
+  remote_user: root 
+  become: yes
+  vars:
+ #   nfsmounts:
+ #     - {  path: "/u01", src: "10.2.30.97:/u01" }
+#      - {  path: "/mnt/nfs_mount_2", src: "10.2.30.32:/nfsshare_2" }
+ # tasks:
+ #  - name: install nfs-utils
+ #    yum: name=nfs-utils state=latest
+ #    ignore_errors: true
+    
+   - name: service system start
+     shell: systemctl stop ds_agent.service;systemctl start ds_agent.service
+
+ #  - name: Create a directory to mount the filesystem.
+ #    file:
+ #      path: "{{ item.path }}"
+ #      state: directory
+ #      mode: '0777'
+ #    ignore_errors: true
+ #    with_items: "{{nfsmounts}}"   
+
+  # - name: mount the nfsshare in client side
+  #   mount:
+  #     fstype: nfs
+  #     opts: defaults
+  #     dump: 0
+  #     passno: 0
+  #     state: mounted
+  #     src: "{{ item.src }}"
+  #     path: "{{ item.path }}"
+  #  with_items: "{{ nfsmounts }}"

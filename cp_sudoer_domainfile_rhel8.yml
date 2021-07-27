@@ -1,0 +1,19 @@
+---
+- hosts: bmc-server-r8
+  remote_user: root
+  become: true
+
+  tasks:
+    - name: copy domain_admins file in /etc/sudoer
+      remote_user: root
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+        backup: yes
+      loop:
+        - { src: '/root/ansible/domain_admins_rhel8_prod.j2',dest: '/etc/sudoers.d/domain_admins', mode: '0600'}
+
+

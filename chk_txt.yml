@@ -1,0 +1,14 @@
+---
+- hosts: all
+  become: true
+  vars:
+    - proxy: ProxyServer=http://10.2.0.31:8080
+
+  tasks:
+    - name: Add a line to a file if the file does not exist, without passing regexp
+      ansible.builtin.lineinfile:
+         path: /tmp/aa.txt
+         line: ProxyServer=http://10.2.0.31:8080
+         create: yes  
+ 
+

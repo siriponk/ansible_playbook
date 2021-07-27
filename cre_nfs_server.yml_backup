@@ -1,0 +1,77 @@
+---
+- hosts: nfs-server
+  user: root
+  vars:
+    nfs_exports:
+      - {  path: "/SharedStorage" , src_client: "10.2.30.32" }
+#      - {  path: "/SharedStorage" , src_client: "10.2.30.32" }
+    share_path:
+      - { path: "/SharedStorage", owner: "nobody" , group: "nobody" , mode: "0777" }
+
+  tasks:
+    - name: nfs install
+      yum: name={{ item }} state=installed
+      with_items:
+        - nfs-utils
+        - rpcbind
+
+    - name: service system start
+      shell: systemctl restart nfs* rpcbind;systemctl enable nfs-server rpcbind
+
+    - name: Create a mountable directory if it does not exist
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      with_items: "{{ share_path }}"
+
+    - name: Copy exports file.
+      template:
+        src: /root/ansible/exports.j2
+        dest: /etc/exports
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+#    - name: modify nfsexports
+#      lineinfile:
+#        path: /etc/exports
+#        line: '/SharedStorage  *(rw,sync,no_all_squash,root_squash)'
+#      shell: [ -e /etc/exports ] && echo '/SharedStorage  *(rw,sync,no_all_squash,root_squash)' > /etc/exports && exportfs -r
+
+
+#    - name : Add multiple clients with RW access. Squash root privileges
+#      infini_export_client:
+#        client: "{{ item.src_client }}"
+#        access_mode: RW
+#        no_root_squash: no
+#        export: "{{ item.path }}"
+#        user: admin
+#        password: password
+#        system: ibox001
+#      with_items: "{{ nfs_exports }}"
+
+    - name: NFS apply change configrue
+      remote_user: root
+      command: "{{ item }}"
+      loop:
+        - systemctl reload nfs-server
+        - exportfs -av
+
+    - name: Add firewall service
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+      with_items:
+        - nfs
+        - mountd
+        - rpc-bind
+
+    - name: reload service firewalld
+      systemd:
+        name: firewalld
+        state: reloaded

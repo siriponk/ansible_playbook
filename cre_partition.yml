@@ -1,0 +1,86 @@
+---
+- hosts: test-oracle-rac
+  remote_user: root
+  become: true
+
+  vars_prompt:
+
+   - name: "disk_name" ## Which disk we are using to create a partition for a logical volume. eg(/dev/sdb,/dev/sdc)
+     prompt: "Disk used for creating partition"
+     private: no
+
+   - name: "pvs_name" ## Disk after partition
+     prompt: "PV name after creating with partition"
+     private: no
+
+   - name: "vg_name" ## Name of Volume group about to create.
+     prompt: "Enter VG name to be created"
+     private: no
+
+   - name: "lv_name" ## Name of Logical Volume about to create.
+     prompt: "Enter LV name to be created"
+     private: no
+
+   - name: "require_lv_size"
+     prompt: "Size of Logical volume to be created."
+     private: no
+
+   - name: "file_system" ## What type of filesystem it can be ext3, ext4 or xfs etc.
+     prompt: "Type of file system required?"
+     private: no
+
+   - name: "mount_point" ## In what name mount point should be created.
+     prompt: "Where need to mount?"
+     private: no
+   
+  tasks:
+
+   - name: Create Partition for "{{ mount_point }}" file system
+     remote_user: ansible
+     shell:
+       /bin/echo -e "n\np\n1\n\n\nt\n8e\nw" | sudo fdisk "{{ disk_name }}" ## Create the partition on a disk.
+     ignore_errors: true
+
+   - name: Create the "{{ vg_name }}" Volume group.
+     lvg:
+       vg: "{{ vg_name }}" ## Name of Volume group.
+       pvs: "{{ pvs_name }}" ## Physical Volume created using partition eg (/dev/sdb1 or /dev/sdc1)
+       pesize: 8
+       pv_options: '-Z y'
+       force: no
+       state: present
+     ignore_errors: true
+
+   - name: Create the "{{ lv_name }}" Logical Volume. 
+     lvol:
+       vg: "{{ vg_name }}"
+       lv: "{{ lv_name }}" ## Name of Logical volume need to be created
+       size: "{{ require_lv_size }}" ## the PE's in Volume group will be used for creating the logical volume.
+       active: yes
+       force: no
+       state: present
+     ignore_errors: true
+
+   - name: Create a "{{ file_system }}" filesystem on lvm "/dev/mapper/{{ vg_name}}-{{ lv_name}}".
+     filesystem:
+       fstype: "{{ file_system }}" ## What type of filesystem required eg:(ext3, ext4, xfs etc.)
+       dev: "/dev/mapper/{{ vg_name }}-{{ lv_name }}" ## Full related path of device mapper to be created with creating FS.
+       force: no
+     ignore_errors: true     
+
+   - name: Create a directory to mount the filesystem.
+     file:
+       path: "{{ mount_point }}"
+       state: directory
+       mode: '0755'
+     ignore_errors: true
+
+   - name: Mount the created "{{ file_system }}"filesystem. ## This is to create the FSTAB entry and mount the Filesystem.
+     mount:
+       path: "{{ mount_point }}" ## Mount point where to mount the FS.
+       src: "/dev/mapper/{{ vg_name }}-{{ lv_name }}" ## Full related path of device mapper to be mounted under mount point.
+       fstype: "{{ file_system }}" ## Filesystem type
+#       opts: rw,noatime,noexec,nodev,nosuid ## Mount options
+       opts: defaults ## Mount options
+       state: mounted
+     ignore_errors: true

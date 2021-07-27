@@ -1,0 +1,14 @@
+---
+- hosts: rhel8down
+  remote_user: root
+  tasks:
+    - name: "reboot server"
+#      shell: shutdown -r now
+      register: uptimeoutput
+      command: "uptime"
+      ignore_errors: true
+
+    - debug:
+        msg: uptimeoutput.stdout_lines
+
+

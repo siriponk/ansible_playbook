@@ -1,0 +1,21 @@
+---
+- hosts: test-servers
+  become: true
+
+  tasks:
+  - name: slurp file
+    slurp:
+     src: /root/aa.txt
+    register: slurp_remote_file
+
+  - name: Read file
+    debug:
+     msg: "{{ slurp_remote_file['content'] | b64decode   }}"
+
+  - name: cat file
+    shell: cat /root/aa.txt
+    register: cat_content_file
+
+  - name: echo file
+    debug:
+     msg: "{{ cat_content_file.stdout }}"  

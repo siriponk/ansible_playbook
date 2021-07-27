@@ -1,0 +1,26 @@
+---
+- hosts: servers
+  become: true
+  tasks:
+  - name: Get timestamp from the system
+    shell: "date +%Y%m%d"
+    register: tstamp
+  - name: Set variables
+    set_fact:
+     cur_date: "{{ tstamp.stdout[0:8]}}"
+  - name: Prints two lines of messages, but only if there is an environment value set
+    ansible.builtin.debug:
+     msg: 
+       - "aaa is {{ cur_date }}"
+       - "/tmp/aa.txt.bak.{{ lookup('pipe','date +%Y%m%d') }}"
+
+  - name: Copy files
+    copy:
+     dest: "{{ item.dest }}"
+     src: "{{ item.src }}"
+     remote_src: yes
+    with_items:
+     #- { src: '/root/aa.txt',dest: '/tmp/aa.txt.bak."{{ lookup('pipe','date +%Y%m%d') }}"'}
+     - { src: '/root/aa.txt',dest: '/root/aa.txt.bak.{{ ansible_date_time.date }}'}
+
+   

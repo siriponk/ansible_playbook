@@ -1,0 +1,27 @@
+---
+- hosts: servers
+  become: true
+  tasks:
+    - name: Copy files
+      copy:
+        dest: "{{ item.dest }}"
+        src: "{{ item.src }}"
+      with_items:
+        - { src: '/etc/hostname',dest: '/etc/hostname.org'}
+        - { src: '/etc/hosts',dest: '/etc/hosts.org'}
+
+    - name: "Update Hostnames"
+      hostname:
+         name: "{{ new_hostname }}"
+
+    - name: 'Add hostname to /etc/hosts'
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^{{ ansible_host }}'
+        line: '{{ ansible_host }} {{ new_hostname }}'
+        state: present
+
+    - name: "reboot server"
+#      shell: shutdown -r now
+      reboot:
+        reboot_timeout: 300

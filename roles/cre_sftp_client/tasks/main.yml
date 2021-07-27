@@ -1,0 +1,34 @@
+---
+# tasks file for cre_sftp_client
+
+
+- name: Add oracel group
+  remote_user: "{{ root_user }}"
+  ansible.builtin.group:
+    name: "{{ item.groups }}"
+    state: present
+    gid: "{{ item.uid }}"
+  with_items: "{{ user_details }}"
+
+- name : User to  Group oracle
+  remote_user: "{{ root_user }}"
+  user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    groups: "{{ item.groups }}"
+    state: present
+    append: yes
+  with_items: "{{ user_details }}"
+
+- name: Create a directory if it does not exist
+  remote_user: "{{ root_user }}"
+  file:
+    path: '/data/"{{ user }}"'
+    state: directory
+    owner: 'root'
+    group: 'sftp'
+    mode: '0755'
+
+
+
+

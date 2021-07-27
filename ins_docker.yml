@@ -1,0 +1,97 @@
+- hosts: test-servers
+  tasks:
+     - yum_repository:
+        name: docker-repo
+        description: repo for Docker
+        baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+        enabled: yes
+        gpgcheck: no
+
+     - yum_repository:
+        name: centos-Extra
+        description: repo for centos Extra Packages
+        baseurl: http://mirror.centos.org/centos/7/extras/x86_64/
+        enabled: yes
+        gpgcheck: no
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+     - yum_repository:
+        name: centos-Extra1
+        description: repo for centos os Packages
+        baseurl: http://mirror.centos.org/centos/7/os/x86_64/
+        enabled: yes
+        gpgcheck: no
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+     - yum_repository:
+        name: centos-Extra2
+        description: repo for centos updates Packages
+        baseurl: http://mirror.centos.org/centos/7/updates/x86_64/
+        enabled: yes
+        gpgcheck: no
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+     - yum:
+        name: http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.107-3.el7.noarch.rpm
+        state: present
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+     - name: device-mapper-persistent-data
+       yum:
+        name: device-mapper-persistent-data
+        state: present
+        update_cache: true
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+     - name: lvm2
+       yum:
+        name: lvm2
+        state: present
+        update_cache: true
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")        
+
+     - name: docker-ce
+       yum:
+        name: docker-ce
+        state: present
+        update_cache: true
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7")
+
+     - shell:
+        cmd: yum install docker-ce -y --nobest
+       when: (ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "8")
+
+     - service:
+         name: docker
+         state: started
+
+     - name: python3-pip
+       yum:
+        name: python3-pip
+        state: present
+        update_cache: true
+
+     - name: Installing docker sdk
+       command: pip3 install docker
+
+     - name: Create folder with webpages
+       file:
+         path: mywebsite
+         state: directory
+
+     - name: Copy webpages
+       copy:
+        src: "index.html"
+        dest: "mywebsite/"
+
+     - name: Create a docker container
+       docker_container:
+        name: MyApacheServer
+        image: httpd
+        state: started
+        exposed_ports:
+         - "80"
+        published_ports:
+         - "8181:80"
+        volumes:
+         - /mywebsite:/usr/local/apache2/htdocs/

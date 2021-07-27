@@ -1,0 +1,37 @@
+---
+- hosts: test-servers
+  remote_user: root
+  become: true
+  vars_prompt:
+   - name: "new_user" ## Create user
+     prompt: "Enter User Name "
+     private: no
+
+  tasks:
+
+  - name: package expect install
+    yum: name={{ item }} state=installed
+    with_items:
+      - expect
+
+  - name: Generate password for new user
+    shell: mkpasswd -l 8
+    register: user_password
+  - debug:  msg=" {{ user_password.stdout }}     " 
+
+  - name: Generate encrypted password
+#    shell: mkpasswd --method=SHA-512 {{ user_password.stdout }}
+    shell: openssl passwd -6 {{ user_password.stdout }}
+    register: encrypted_user_password
+
+  - ansible.builtin.user:
+      name: "{{ new_user }}"
+      password: "{{ encrypted_user_password.stdout }}"
+      comment: 'Admin user account'
+      groups: admin
+      shell: /bin/bash
+      append: yes
+      state: present
+
+  - name: User created
+    debug: msg="Password for {{ new_user }} is {{ user_password.stdout }}"

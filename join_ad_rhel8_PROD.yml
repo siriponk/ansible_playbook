@@ -1,0 +1,98 @@
+---
+- hosts: new-server
+  remote_user: root 
+  become: true
+  vars:
+    ad_join_admin: a1-th72017392
+#    ad_join_admin: a-th12362427
+    addomain: global.lotuss.org
+#    addomain: devglobal.lotuss.org
+    old_domain: gg-th-vc-admins@th.lotuss.org
+    new_domain: gg-th-vc-admins@devglobal.lotuss.org
+#    sssdfile: /etc/sssd/sssd.conf
+
+  vars_prompt:
+    - name: "bind_password"
+      prompt: "Password for a-th72017392"
+#      prompt: "Password for a-th12362427"
+      private: yes
+
+  tasks:
+
+    - name: Distribution
+      debug: msg="{{ ansible_distribution }}"
+
+    - name: Distribution version
+      debug: msg="{{ ansible_distribution_version}}"
+
+    - name: Distribution major version
+      debug: msg="{{ ansible_distribution_major_version }}"
+
+#    - name: Install necessary rpms for sssd config
+#      yum: 
+#        name: "{{ item }}"
+#        state: present
+#        update_cache: true
+#      loop:
+#        - sssd
+#        - realmd
+#        - oddjob
+#        - oddjob-mkhomedir
+#        - adcli
+#        - samba-common
+#        - samba-common-tools
+#        - krb5-workstation
+#        - openldap-clients
+
+    - name: Check if machine is bound
+      shell: /bin/bash -c "realm list | grep sssd"
+      register: ad_status
+      changed_when: false
+      ignore_errors: true
+
+#    - name: leaving Realm
+#      command: /bin/bash -c "realm leave"
+#      when: ad_status.rc != 0
+#      ignore_errors: true
+
+    - name: Join system to AD and put the computer object in the Linux 
+#      command: /bin/bash -c "echo {{ bind_password }} | realm join --user={{ ad_join_admin }} {{ addomain }} && sleep 10"
+      command: /bin/bash -c "echo 'Jan@2021' | realm join --user={{ ad_join_admin }} {{ addomain }} && sleep 10"
+#      command: /bin/bash -c "echo X2eZ{>hk | realm join {{ addomain }} -U {{ ad_join_admin }}  && sleep 10"
+      when: ad_status.rc != 0
+
+    - name: copy file sssd file
+      remote_user: root
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+        backup: yes
+      loop:
+#        - { src: '/root/ansible/sssd.conf_rhel7_prod.j2',dest: '/etc/sssd/sssd.conf', mode: '0600'}
+        - { src: '/root/ansible/sssd.conf_rhel8_prod.j2',dest: '/etc/sssd/sssd.conf', mode: '0600'}
+#        - { src: '/root/ansible/sudoers_r7_prod.j2',dest: '/etc/sudoers', mode: '0644'}
+
+      when: ad_status.rc != 0
+
+    - name: Starting sssd
+      service:
+        name: sssd
+        state: "{{ item }}"
+#        enabled: yes
+      with_items:
+      - stopped
+      - started
+      when: ad_status.rc != 0
+
+    - name: change sudoer file
+      remote_user: root
+      replace:
+        path: /etc/sudoers.d/domain_admins
+#        path: /root/bb.txt
+        regexp: '{{ old_domain }}'
+        replace: "{{ new_domain }}"
+        backup: yes
+

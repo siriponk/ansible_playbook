@@ -1,0 +1,29 @@
+---
+- hosts: test-servers
+  remote_user: root
+  become: true
+  gather_facts: no
+  vars_prompt:
+    - name: "users" 
+      prompt: "Enter User for addition "
+      private: no
+
+    - name: "password"
+      prompt: "Enter user 's password "
+      private: no
+
+    - name: "group"
+      prompt: "Enter Group for user 's exist"
+      private: no
+
+  tasks:
+    - name: Add User
+      user:
+        name: "{{ user }}"
+        password: "{{ password }}"
+        group: sftp, developers 
+        shell=/bin/bash
+        append=yes
+      with_items: "{{ users.split(','),  }}"
+
+

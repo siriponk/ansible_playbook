@@ -1,0 +1,36 @@
+oracle_install_group:            "oinstall"
+root_directory:                  "/u01"
+stage_dir:                       "/u01/stage"
+scripts_directory:               "{{ root_directory }}/app/scripts"
+oracle_base:                     /u01/app/oracle
+oracle_home:                     /u01/app/oracle/product/19.0.0/dbhome_1
+oracle_inventory:                /u01/app/oraInventory 
+oracle_user:                     oracle
+root_user:                       root
+oradbsoft_rsp:                   "19cEE_SoftOnly"    
+preinstall_pkg:                  "oracle-database-preinstall-19c-1.0-1.el7.src.rpm"
+oracle_script:                   /home/oracle/scripts
+oracle_src:                      /lib/systemd/system
+
+##### 
+oracle_hostname:                 ol8-19.localdomain
+oracle_unqname:                  cdb1
+oracle_sid:                      cdb1
+pdb_name:                        pdb1
+data_dir:                        "/u02/oradata"
+
+############# oracel user limits ###########
+soft_no_file:                    1024
+hard_no_file:                    65536
+soft_nproc:    			 16384
+hard_nproc:    			 16384
+soft_stack:    			 10240
+hard_stack:    			 32768
+hard_memlock:    		 134217728
+soft_memlock:    		 134217728
+
+##########################################
+user_details:
+  - { name: oracle, uid: 54321, groups: "oinstall" }
+  - { name: oracle, uid: 54322, groups: "dba" }
+  - { name: oracle, uid: 54323, groups: "oper" }

@@ -1,0 +1,39 @@
+---
+- hosts: test-servers
+  user: root
+  become: true
+  vars:
+   old_proxy: 10.2.0.31
+   new_proxy: 10.3.16.39
+  tasks:
+#    - name: 'Change proxy in {{ ansible_host }}'
+#      replace:
+#        path: "{{ item }}"
+#        regexp: '{{ old_proxy }}'
+#        replace: "{{ new_proxy }}"
+#        backup: yes
+#      with_items:
+#        - /var/opt/carbonblack/psc/cfg.ini
+#        - /etc/environment
+#      tags:
+#        - change proxy
+    
+    - name: Copy new proxy files
+      remote_user: root
+      ansible.builtin.template: 
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+        backup: yes
+      loop:
+#        - { src: '/var/opt/carbonblack/psc/cfg.ini',dest: '/var/opt/carbonblack/psc/cfg.ini', mode: '0644'}
+#        - { src: '/etc/environment',dest: '/etc/environment', mode: '0644'}
+#        - { src: '/root/ansible/resolv.conf.j2',dest: '/etc/resolv.conf', mode: '0644'}
+        - { src: '/root/ansible/resolv.conf.j2',dest: '/root/aa.txt', mode: '0644'}
+  
+#    - name: Restart cbagentd service
+#      service:
+#         name: cbagentd
+#         state: restarted
+#         daemon_reload: yes
+ 

@@ -1,0 +1,18 @@
+---
+- hosts: all
+  become: true
+  vars:
+    - package: cb-psc-sensor
+  tasks:
+    - name: check if 
+      yum:
+        #list="{{ package }}"
+        list: cb-psc-sensor
+      register: is_installed
+      
+    - name: install "{{ package }}" if not exist
+      command: sh /tmp/install.sh 546OA1IDWWGBKIC5WPC!
+      #when: (is_installed.results|length == 1) or (is_installed.results[1].yumstate != 'installed')
+      when: (is_installed.results|length == 0)
+      
+

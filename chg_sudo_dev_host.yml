@@ -1,0 +1,47 @@
+---
+- hosts: rhel8dev
+  become: true
+  vars:
+   old_domain: th.lotuss.org 
+   new_domain: devglobal.lotuss.org
+
+  tasks:
+
+#    - name: Copy file /etc/resolve.conf
+#      remote_user: root
+#      ansible.builtin.template:
+#        src: "{{ item.src }}"
+#        dest: "{{ item.dest }}"
+#        mode: "{{ item.mode }}"
+#        backup: yes
+#      loop:
+#        - { src: '/root/ansible/resolv_dev.conf.j2',dest: '/etc/resolv.conf', mode: '0644'}
+#        - { src: '/root/ansible/resolv.conf.j2',dest: '/root/aa.txt', mode: '0644'}
+
+#    - name: 'Add hostname to /etc/hosts'
+#      remote_user: root
+#      ansible.builtin.lineinfile:
+#        path: /etc/hosts
+#        path: /root/bb.txt
+#        regexp: '^{{ ansible_host }}'
+#        line: '{{ ansible_host }}   {{ new_hostname }}   {{ new_hostname }}{{ domain }}'
+#        line: '{{ ansible_host }} {{ new_hostname }}{{ new_domain }} {{ new_hostname }}'
+#        line: '{{ ansible_host }} {{ new_hostname }}@aaaa.com {{ new_hostname }}'
+#        state: present
+#        backup: yes
+#        create: yes
+  
+    - name: 'Change domain'
+      remote_user: root
+      replace:
+        path: /etc/sudoers.d/domain_admins
+#        path: /root/bb.txt
+        regexp: '{{ old_domain }}'
+        replace: "{{ new_domain }}"
+        backup: yes
+
+
+#    - name: "reboot server"
+#      shell: shutdown -r now
+#      reboot:
+#        reboot_timeout: 300

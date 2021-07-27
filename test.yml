@@ -1,0 +1,18 @@
+---
+- hosts: test-servers
+  become: true
+  tasks:
+#    - name: Add ssh key to {{ ansible_host }}
+#      shell: /bin/bash -c "ssh-copy-id root@{{ ansible_host }}"
+#      ignore_errors: true
+
+   - name: change port in listener.ora
+     remote_user: root
+     become: yes
+     become_user: oracle
+     replace:
+       path: /u01/app/oracle/product/19.0.0/dbhome_1/network/admin/listener.ora
+       regexp: '1521'
+       replace: "1527"
+
+

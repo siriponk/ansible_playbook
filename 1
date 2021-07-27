@@ -1,0 +1,19 @@
+---
+- hosts: all
+  become: true
+
+  tasks:
+
+    - name: Check if machine is bound
+      shell: /bin/bash -c "realm list | grep sssd"
+      register: ad_status
+      changed_when: false
+      ignore_errors: true
+    
+    - debug:
+        msg: "{{ad_status.rc}}"
+
+    - name: aaaa
+      command: 'df -Ph /'
+      when: ad_status.rc === 0
+

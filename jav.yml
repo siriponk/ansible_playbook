@@ -1,0 +1,58 @@
+---
+- hosts: all
+  remote_user: root
+  become: true
+  vars:
+   jbin: /usr/bin
+   javas:
+    java7:
+      download: 'http://download.oracle.com/otn-pub/java/jdk/7u79-b15/jdk-7u79-linux-x64.rpm'
+      args: 'Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=acc'
+      home: /usr/java/jdk1.7.0_79/bin
+      unpackwith: yum -y install java-1.8.0-openjdk*
+      priority: 1
+    java8:
+      download: 'http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jdk-8u111-linux-x64.tar.gz'
+      args: 'Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=ace'
+      home: /usr/java/jdk1.8.0_281/bin
+      unpackwith: gzip -d /root/jdk-8u281-linux-x64.tar.gz
+      priority: 2
+ 
+  tasks:
+  
+  - name: copy java8 and sql delveloop tools to /root
+    copy:
+      dest: "{{ item.dest }}"
+      src: "{{ item.src }}" 
+    with_items:
+      - { src: '/root/jdk-8u281-linux-x64.tar.gz',dest: '/root/jdk-8u281-linux-x64.tar.gz'}
+      - { src: '/root/sqldeveloper-20.4.1.407.0006-20.4.1-407.0006.noarch.rpm',dest: '/root/sqldeveloper-20.4.1.407.0006-20.4.1-407.0006.noarch.rpm'}
+
+
+  - name: install Java7 & unpack Java8 packages
+    command: "{{ item.value.unpackwith }}"
+    with_dict: "{{ javas }}"
+ 
+  - name: install Java8
+    command: tar -xf /root/jdk-8u281-linux-x64.tar -C /usr/java
+ 
+  - name: configure jar's
+    command: 'alternatives --install {{ jbin }}/jar jar  {{ item.value.home }}/jar {{ item.value.priority }}'
+    with_dict: "{{ javas }}"
+ 
+  - name: configure java's
+    command: 'alternatives --install {{ jbin }}/java java {{ item.value.home }}/java {{ item.value.priority }}'
+    with_dict: "{{ javas }}"
+ 
+  - name: configure javac's
+    command: 'alternatives --install {{ jbin }}/javac javac {{ item.value.home }}/javac {{ item.value.priority }}'
+    with_dict: "{{ javas }}"
+  
+#  - name: Install Sql delvelooper tools for oracle
+#    command: rpm -Uvh /root/sqldeveloper-20.4.1.407.0006-20.4.1-407.0006.noarch.rpm
+ 
+#  - name: remove java7 package
+#    file: path=/root/jdk-7u79-linux-x64.rpm state=absent
+ 
+  - name: remove java8 package
+    file: path=/root/jdk-8u281-linux-x64.tar state=absent

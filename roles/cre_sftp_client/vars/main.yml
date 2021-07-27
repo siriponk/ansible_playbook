@@ -1,0 +1,4 @@
+---
+# vars file for cre_sftp_client
+root_user:    root
+
